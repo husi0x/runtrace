@@ -26,7 +26,7 @@ git clone https://github.com/husi0x/runtrace.git
 cd runtrace
 python -m venv .venv
 source .venv/bin/activate
-pip install .
+pip install "$PWD"
 runtrace demo
 ```
 
