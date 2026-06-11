@@ -54,7 +54,7 @@ Runtrace v0.1.0 — a black box for AI coding agents
 
 Before pushing publicly:
 
-- replace `husi0x` in README/CONTRIBUTING if you know the final owner
 - run `bash scripts/smoke.sh`
 - review `SECURITY.md`
+- add social preview after `assets/runtrace-hero.png` exists
 - review `.runtrace/` is ignored and not committed

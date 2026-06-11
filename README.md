@@ -18,9 +18,6 @@
   <img alt="No network required" src="https://img.shields.io/badge/network-not_required-lightgrey">
 </p>
 
-
-
-
 ## Try it in 30 seconds
 
 ```bash
@@ -38,8 +35,6 @@ Runtrace prints the exact report paths after `demo`. Open the HTML report it pri
 xdg-open .runtrace/runs/<printed-run-id>/report.html
 ```
 
-Replace `husi0x` with the GitHub account or organization that hosts your fork.
-
 ## Already cloned?
 
 From the repository root:
@@ -49,7 +44,11 @@ pip install .
 runtrace demo
 ```
 
-PyPI package coming after the first release.
+## Why Runtrace?
+
+AI coding agents can change files, run commands, and leave messy context behind.
+
+Runtrace records exactly what happened so you can review the work later: command output, git diff, changed files, and a simple checklist.
 
 ## What you get
 
@@ -153,33 +152,9 @@ runtrace demo
 
 ## Project structure
 
-```text
-runtrace/
-├── README.md
-├── LICENSE
-├── pyproject.toml
-├── CHANGELOG.md
-├── CONTRIBUTING.md
-├── SECURITY.md
-├── assets/
-├── scripts/
-├── src/runtrace/
-│   ├── __init__.py
-│   ├── __main__.py
-│   ├── cli.py
-│   ├── main.py
-│   ├── models.py
-│   ├── git_utils.py
-│   ├── runner.py
-│   ├── recorder.py
-│   ├── reports.py
-│   ├── review.py
-│   ├── paths.py
-│   └── templates/report.html.j2
-├── tests/
-├── examples/
-└── docs/
-```
+Runtrace uses a standard Python `src/` layout with tests, docs, examples, and a small smoke script.
+
+See [docs/CLI.md](docs/CLI.md), [docs/REPORTS.md](docs/REPORTS.md), and [examples/](examples/) for the practical details.
 
 ## Docs
 
@@ -195,7 +170,7 @@ runtrace/
 
 ## Assets
 
-README visuals live in [assets/](assets/). No hero image is committed yet. When a real banner exists, use `assets/runtrace-hero.png` and uncomment the hero block near the top of this README.
+README visuals live in [assets/](assets/).
 
 ## Roadmap
 
