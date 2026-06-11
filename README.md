@@ -15,12 +15,11 @@
   <img alt="No network required" src="https://img.shields.io/badge/network-not_required-lightgrey">
 </p>
 
-<!--
-Optional hero image:
+
 <p align="center">
   <img src="assets/runtrace-hero.png" alt="Runtrace — a black box for AI coding agents" width="100%">
 </p>
--->
+
 
 ## Try it in 30 seconds
 
