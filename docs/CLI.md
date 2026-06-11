@@ -24,6 +24,18 @@ runtrace run --name "tests" pytest -q
 
 The second form is ambiguous for CLI parsers. Use `--`.
 
+## Interactive commands and PTY
+
+Runtrace has best-effort Unix PTY support for interactive commands. Non-interactive commands are fully supported everywhere through a subprocess fallback.
+
+Use portable subprocess mode explicitly with:
+
+```bash
+runtrace run --no-pty --name "tests" -- pytest -q
+```
+
+This is the recommended mode for CI, tests, and scripted runs.
+
 ## Commands
 
 ### `runtrace --help`
@@ -42,6 +54,17 @@ Print the installed version.
 runtrace version
 ```
 
+### `runtrace init`
+
+Create `.runtrace/config.toml` for configurable review rules.
+
+```bash
+runtrace init
+runtrace init --force
+```
+
+See [CONFIG.md](CONFIG.md).
+
 ### `runtrace demo`
 
 The easiest first run. It records a safe Python command and generates both reports.
@@ -54,6 +77,7 @@ After it finishes, Runtrace prints the paths to:
 
 - `report.md`
 - `report.html`
+- `output.log`
 
 Open the HTML report with:
 
@@ -74,6 +98,7 @@ Record any command.
 ```bash
 runtrace run --name "hello" -- python -c "print('hello')"
 runtrace run --name "pytest baseline" -- pytest -q
+runtrace run --no-pty --name "pytest baseline" -- pytest -q
 runtrace run --name "codex bugfix" -- codex exec "fix the failing tests"
 ```
 
@@ -99,6 +124,49 @@ Choose a format:
 runtrace report --format md
 runtrace report --format html
 runtrace report --format both
+```
+
+### `runtrace index`
+
+Generate a compact local dashboard for all runs:
+
+```bash
+runtrace index
+xdg-open .runtrace/index.html
+```
+
+Alias:
+
+```bash
+runtrace dashboard
+```
+
+If there are no runs yet, Runtrace prints:
+
+```text
+No runs found yet. Try: runtrace demo
+```
+
+### `runtrace export`
+
+Export a compact JSON summary for the latest run. The export does not include huge logs or full diffs.
+
+Print JSON to stdout:
+
+```bash
+runtrace export
+```
+
+Write JSON to a file:
+
+```bash
+runtrace export --output summary.json
+```
+
+Export one run:
+
+```bash
+runtrace export --run-id <run_id> --output summary.json
 ```
 
 ### `runtrace list`

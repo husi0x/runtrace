@@ -1,16 +1,26 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
+from typing import Any
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
-from runtrace.models import ReportSummary
-from runtrace.recorder import load_metadata, resolve_run_id, run_dir_for
+from runtrace.models import ReportSummary, RunMetadata
+from runtrace.paths import relative_to_cwd, runtrace_dir
+from runtrace.recorder import list_runs, load_metadata, resolve_run_id, run_dir_for
 from runtrace.review import build_review_findings
 
 
-def build_report_summary(metadata) -> ReportSummary:
-    findings = build_review_findings(metadata)
+def _template_env() -> Environment:
+    return Environment(
+        loader=FileSystemLoader(Path(__file__).parent / "templates"),
+        autoescape=select_autoescape(["html", "xml"]),
+    )
+
+
+def build_report_summary(metadata: RunMetadata) -> ReportSummary:
+    findings = build_review_findings(metadata, cwd=metadata.cwd)
     return ReportSummary(
         metadata=metadata,
         findings=findings,
@@ -145,11 +155,7 @@ def generate_html_report(cwd: str | Path = ".", run_id: str | None = None) -> Pa
     actual_id, metadata = _metadata_for_report(cwd, run_id)
     summary = build_report_summary(metadata)
     run_dir = run_dir_for(cwd, actual_id)
-    env = Environment(
-        loader=FileSystemLoader(Path(__file__).parent / "templates"),
-        autoescape=select_autoescape(["html", "xml"]),
-    )
-    html = env.get_template("report.html.j2").render(summary=summary, metadata=metadata)
+    html = _template_env().get_template("report.html.j2").render(summary=summary, metadata=metadata)
     path = run_dir / "report.html"
     path.write_text(html, encoding="utf-8")
     return path
@@ -164,3 +170,80 @@ def generate_reports(cwd: str | Path = ".", run_id: str | None = None, fmt: str 
     if fmt in {"html", "both"}:
         paths.append(generate_html_report(cwd, run_id))
     return paths
+
+
+def _run_index_rows(cwd: str | Path) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for metadata in list_runs(cwd):
+        folder = run_dir_for(cwd, metadata.run_id)
+        report_html = folder / "report.html"
+        output_log = folder / "output.log"
+        rows.append(
+            {
+                "run_id": metadata.run_id,
+                "name": metadata.name,
+                "status": "success" if metadata.succeeded else "failed",
+                "command": metadata.command_shell,
+                "duration": metadata.duration_seconds,
+                "created": metadata.start_time,
+                "changed_file_count": len(metadata.changed_files),
+                "report_href": f"runs/{metadata.run_id}/report.html" if report_html.exists() else None,
+                "output_href": f"runs/{metadata.run_id}/output.log" if output_log.exists() else None,
+            }
+        )
+    return rows
+
+
+def generate_index_page(cwd: str | Path = ".") -> Path:
+    root = runtrace_dir(cwd)
+    root.mkdir(parents=True, exist_ok=True)
+    path = root / "index.html"
+    html = _template_env().get_template("index.html.j2").render(runs=_run_index_rows(cwd))
+    path.write_text(html, encoding="utf-8")
+    return path
+
+
+def _report_paths(cwd: str | Path, run_id: str) -> dict[str, str]:
+    folder = run_dir_for(cwd, run_id)
+    paths: dict[str, str] = {}
+    report_md = folder / "report.md"
+    report_html = folder / "report.html"
+    output_log = folder / "output.log"
+    if report_md.exists():
+        paths["markdown"] = relative_to_cwd(report_md, cwd)
+    if report_html.exists():
+        paths["html"] = relative_to_cwd(report_html, cwd)
+    if output_log.exists():
+        paths["output_log"] = relative_to_cwd(output_log, cwd)
+    return paths
+
+
+def export_summary(cwd: str | Path = ".", run_id: str | None = None) -> dict[str, Any]:
+    actual_id, metadata = _metadata_for_report(cwd, run_id)
+    findings = build_review_findings(metadata, cwd=metadata.cwd)
+    return {
+        "run_id": metadata.run_id,
+        "name": metadata.name,
+        "command": metadata.command,
+        "command_shell": metadata.command_shell,
+        "cwd": metadata.cwd,
+        "success": metadata.succeeded,
+        "exit_code": metadata.exit_code,
+        "started_at": metadata.start_time.isoformat(),
+        "ended_at": metadata.end_time.isoformat() if metadata.end_time else None,
+        "duration_seconds": metadata.duration_seconds,
+        "git_available": metadata.git_before.git_available or metadata.git_after.git_available,
+        "branch_before": metadata.git_before.branch,
+        "branch_after": metadata.git_after.branch,
+        "commit_before": metadata.git_before.head_sha,
+        "commit_after": metadata.git_after.head_sha,
+        "changed_files": metadata.changed_files,
+        "changed_file_count": len(metadata.changed_files),
+        "diff_stat": metadata.diff_stat_after,
+        "review_findings": [finding.model_dump() for finding in findings],
+        "report_paths": _report_paths(cwd, actual_id),
+    }
+
+
+def export_summary_json(cwd: str | Path = ".", run_id: str | None = None) -> str:
+    return json.dumps(export_summary(cwd, run_id), indent=2, ensure_ascii=False) + "\n"

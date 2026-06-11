@@ -56,10 +56,15 @@ run "$PY" -m runtrace --help >/dev/null
 log "Running demo in a clean working directory"
 (
   cd "$WORK_DIR"
+  run "$RUNTRACE" init --force >/dev/null
   run "$RUNTRACE" demo
+  run "$RUNTRACE" index >/dev/null
+  run "$RUNTRACE" export --output summary.json >/dev/null
+  run "$PY" -m json.tool summary.json >/dev/null
   run "$RUNTRACE" list >/dev/null
   run "$RUNTRACE" show latest >/dev/null
   run "$RUNTRACE" report >/dev/null
+  run "$RUNTRACE" run --no-pty --name "subprocess smoke" -- "$PY" -c "print('subprocess smoke')" >/dev/null
 )
 
 log "Running tests"

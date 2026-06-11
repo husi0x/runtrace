@@ -10,6 +10,7 @@ from rich.panel import Panel
 from rich.table import Table
 
 from runtrace import __version__
+from runtrace.config import write_default_config
 from runtrace.paths import relative_to_cwd, run_dir
 from runtrace.recorder import (
     delete_old_runs,
@@ -18,7 +19,7 @@ from runtrace.recorder import (
     record_run,
     resolve_run_id,
 )
-from runtrace.reports import build_report_summary, generate_reports
+from runtrace.reports import build_report_summary, export_summary_json, generate_index_page, generate_reports
 
 app = typer.Typer(
     help="Runtrace — a black box for AI coding agents.",
@@ -64,6 +65,23 @@ def version_cmd() -> None:
     console.print(f"Runtrace {__version__}")
 
 
+@app.command("init")
+def init_cmd(
+    force: Annotated[bool, typer.Option("--force", help="Overwrite .runtrace/config.toml if it exists.")] = False,
+) -> None:
+    """Create a local .runtrace/config.toml review-rules file."""
+    path, changed = write_default_config(Path.cwd(), force=force)
+    rel = relative_to_cwd(path)
+    if changed and force:
+        message = f"[green]Config overwritten:[/] {rel}"
+    elif changed:
+        message = f"[green]Config created:[/] {rel}"
+    else:
+        message = f"[yellow]Config already exists:[/] {rel}\nUse [bold]runtrace init --force[/bold] to overwrite it."
+    message += "\n\n[bold]Next:[/bold]\n  edit .runtrace/config.toml\n  runtrace demo"
+    console.print(Panel(message, title="Runtrace config", border_style="green" if changed else "yellow"))
+
+
 @app.command("demo")
 def demo_cmd() -> None:
     """Record a safe demo run and generate Markdown + HTML reports."""
@@ -81,13 +99,26 @@ def demo_cmd() -> None:
 def run(
     ctx: typer.Context,
     name: Annotated[str | None, typer.Option("--name", "-n", help="Human-readable run name.")] = None,
+    no_pty: Annotated[
+        bool,
+        typer.Option(
+            "--no-pty",
+            help=(
+                "Use portable subprocess mode. PTY is best-effort for interactive commands; "
+                "non-interactive commands are fully supported."
+            ),
+        ),
+    ] = False,
 ) -> None:
     """Record any command.
 
     Put -- before the command you want to run.
 
+    PTY is best-effort for interactive commands; non-interactive commands are fully supported.
+
     Examples:
       runtrace run --name "tests" -- pytest -q
+      runtrace run --no-pty --name "tests" -- pytest -q
       runtrace run --name "codex bugfix" -- codex exec "fix failing tests"
     """
     command = list(ctx.args)
@@ -98,7 +129,7 @@ def run(
         raise typer.Exit(2)
 
     try:
-        metadata = record_run(command, Path.cwd(), name=name)
+        metadata = record_run(command, Path.cwd(), name=name, use_pty=False if no_pty else None)
     except FileNotFoundError:
         _print_error(f"Command not found: {command[0]}", "check the command name or use runtrace demo")
         raise typer.Exit(127) from None
@@ -145,6 +176,51 @@ def report_cmd(
     actual_id = resolve_run_id(Path.cwd(), run_id)
     assert actual_id is not None
     _print_paths("Runtrace report generated", actual_id, paths)
+
+
+@app.command("index")
+def index_cmd() -> None:
+    """Generate .runtrace/index.html for all local runs."""
+    if not list_runs(Path.cwd()):
+        console.print("[yellow]No runs found yet. Try: runtrace demo[/yellow]")
+        return
+    path = generate_index_page(Path.cwd())
+    rel = relative_to_cwd(path)
+    console.print(
+        Panel(
+            f"[bold]Index:[/bold] {rel}\n\n[bold]Next:[/bold]\n  xdg-open {rel}",
+            title="Runtrace index generated",
+            border_style="green",
+        )
+    )
+
+
+@app.command("dashboard")
+def dashboard_cmd() -> None:
+    """Alias for runtrace index."""
+    index_cmd()
+
+
+@app.command("export")
+def export_cmd(
+    run_id: Annotated[str | None, typer.Option("--run-id", help="Run ID to export. Defaults to latest.")] = None,
+    fmt: Annotated[str, typer.Option("--format", "-f", help="Only json is currently supported.")] = "json",
+    output: Annotated[Path | None, typer.Option("--output", "-o", help="Write JSON summary to this file.")] = None,
+) -> None:
+    """Export a compact machine-readable run summary."""
+    if fmt != "json":
+        _print_error("format must be json", "runtrace export --format json")
+        raise typer.Exit(2)
+    try:
+        text = export_summary_json(Path.cwd(), run_id)
+    except FileNotFoundError:
+        _print_error("No runs found yet.", "runtrace demo")
+        raise typer.Exit(1) from None
+    if output is None:
+        sys.stdout.write(text)
+        return
+    output.write_text(text, encoding="utf-8")
+    console.print(f"[green]Wrote JSON summary:[/] {relative_to_cwd(output)}")
 
 
 def _render_runs_table() -> None:

@@ -11,6 +11,7 @@
 <p align="center">
   <img src="assets/runtrace-hero.png" alt="Runtrace — a black box for AI coding agents" width="100%">
 </p>
+
 <p align="center">
   <img alt="Python 3.11+" src="https://img.shields.io/badge/python-3.11%2B-blue">
   <img alt="License MIT" src="https://img.shields.io/badge/license-MIT-green">
@@ -29,30 +30,17 @@ pip install .
 runtrace demo
 ```
 
-Runtrace prints the exact report paths after `demo`. Open the HTML report it prints, for example:
+Runtrace prints the report paths after `demo`:
 
 ```bash
 xdg-open .runtrace/runs/<printed-run-id>/report.html
 ```
 
-## Already cloned?
-
-From the repository root:
-
-```bash
-pip install .
-runtrace demo
-```
-
 ## Why Runtrace?
 
-AI coding agents can change files, run commands, and leave messy context behind.
+AI coding agents can change 20 files in one run. Runtrace shows what they actually did.
 
-Runtrace records exactly what happened so you can review the work later: command output, git diff, changed files, and a simple checklist.
-
-## What you get
-
-Each run creates a local folder under `.runtrace/runs/<run_id>/`:
+Each run creates a local folder under `.runtrace/runs/<run_id>/` with:
 
 ```text
 metadata.json    # machine-readable run record
@@ -61,14 +49,7 @@ report.md        # readable Markdown report
 report.html      # self-contained HTML report
 ```
 
-Runtrace records:
-
-- command and working directory
-- start time, end time, and duration
-- exit code and success/failure status
-- live command output saved to `output.log`
-- git branch, commit, status, changed files, and diff stat when git is available
-- deterministic review checklist
+Runtrace records command timing, exit code, live output, git branch/commit/status/diff when available, changed files, and deterministic review findings.
 
 If the directory is not a git repository, Runtrace still records command output and marks git tracking as unavailable.
 
@@ -89,21 +70,25 @@ runtrace run --name "pytest baseline" -- pytest -q
 runtrace report
 ```
 
-Run any local command:
+Use portable subprocess mode when you do not want best-effort PTY handling:
 
 ```bash
-runtrace run --name "hello" -- python -c "print('hello')"
-runtrace report
-runtrace show latest
+runtrace run --no-pty --name "tests" -- pytest -q
 ```
 
 ## CLI commands
 
 | Command | What it does |
 |---|---|
+| `runtrace init` | Creates `.runtrace/config.toml` for custom review checks |
 | `runtrace demo` | Records a safe demo run and generates reports |
 | `runtrace run -- <command>` | Records any command |
+| `runtrace run --no-pty -- <command>` | Records a command with portable subprocess mode |
 | `runtrace report` | Generates Markdown and HTML reports |
+| `runtrace index` | Generates `.runtrace/index.html` for all runs |
+| `runtrace dashboard` | Alias for `runtrace index` |
+| `runtrace export` | Prints a compact JSON summary for the latest run |
+| `runtrace export --output summary.json` | Writes the JSON summary to a file |
 | `runtrace list` | Lists previous runs |
 | `runtrace runs` | Alias for `runtrace list` |
 | `runtrace show <run_id>` | Shows one run in the terminal |
@@ -116,16 +101,29 @@ See [docs/CLI.md](docs/CLI.md) for full command details and common mistakes.
 
 ## Reports
 
-Runtrace generates two report formats:
+Runtrace generates local Markdown, HTML, index, and JSON summary artifacts:
 
-- `report.md` — readable Markdown for terminals, PR comments, and notes
-- `report.html` — self-contained dark HTML report with cards, status badges, changed files, diff stat, and command output preview
+```bash
+runtrace report
+runtrace index
+runtrace export --output summary.json
+```
 
-The full command output stays in `output.log`. The full machine-readable record stays in `metadata.json`.
+The full command output stays in `output.log`. The full machine-readable run record stays in `metadata.json`. The JSON export intentionally skips huge logs and full diffs.
 
-Sample output is included in [examples/sample-output](examples/sample-output/). It is intentionally small and contains neutral demo paths.
+Sample output is included in [examples/sample-output](examples/sample-output/). See [docs/REPORTS.md](docs/REPORTS.md) for details.
 
-See [docs/REPORTS.md](docs/REPORTS.md) for report details.
+## Configuration
+
+Create local review rules:
+
+```bash
+runtrace init
+```
+
+Then edit `.runtrace/config.toml` to change sensitive path patterns, dependency/config patterns, test command patterns, or the large-diff threshold.
+
+See [docs/CONFIG.md](docs/CONFIG.md).
 
 ## Privacy
 
@@ -143,23 +141,19 @@ bash scripts/smoke.sh
 
 ## Install with pipx from GitHub
 
-This works after the repository is pushed to GitHub:
-
 ```bash
 pipx install git+https://github.com/husi0x/runtrace.git
 runtrace demo
 ```
 
-## Project structure
-
-Runtrace uses a standard Python `src/` layout with tests, docs, examples, and a small smoke script.
-
-See [docs/CLI.md](docs/CLI.md), [docs/REPORTS.md](docs/REPORTS.md), and [examples/](examples/) for the practical details.
+PyPI release prep is documented in [docs/PYPI.md](docs/PYPI.md). Publishing is manual.
 
 ## Docs
 
 - [CLI reference](docs/CLI.md)
 - [Reports and privacy](docs/REPORTS.md)
+- [Configuration](docs/CONFIG.md)
+- [PyPI release prep](docs/PYPI.md)
 - [Release checklist](docs/RELEASE.md)
 - [GitHub metadata](docs/GITHUB.md)
 - [Examples](examples/README.md)
@@ -167,14 +161,6 @@ See [docs/CLI.md](docs/CLI.md), [docs/REPORTS.md](docs/REPORTS.md), and [example
 - [Security](SECURITY.md)
 - [Changelog](CHANGELOG.md)
 - [License](LICENSE)
-
-## Roadmap
-
-- publish first PyPI release
-- add a report index page
-- improve cross-platform interactive command handling
-- add optional JSON summary export
-- add configurable review rules
 
 ## License
 

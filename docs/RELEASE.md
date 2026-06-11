@@ -22,9 +22,14 @@ pytest -q
 ## 3. Run local smoke test
 
 ```bash
+bash scripts/smoke.sh
 runtrace --help
 python -m runtrace --help
+runtrace init --force
 runtrace demo
+runtrace index
+runtrace export --output summary.json
+python -m json.tool summary.json >/dev/null
 runtrace list
 runtrace show latest
 runtrace report
@@ -40,36 +45,64 @@ source /tmp/runtrace-test-venv/bin/activate
 pip install /path/to/runtrace
 runtrace --help
 runtrace demo
+runtrace index
+runtrace export --output summary.json
+python -m json.tool summary.json >/dev/null
 runtrace list
 runtrace show latest
 runtrace report
 python -m runtrace --help
 ```
 
-## 5. Update changelog
+## 5. Build and check distributions
+
+See [PYPI.md](PYPI.md) for full PyPI prep.
+
+```bash
+python -m pip install build twine
+rm -rf dist build *.egg-info
+python -m build
+twine check dist/*
+```
+
+## 6. Test install the wheel locally
+
+```bash
+python -m venv /tmp/runtrace-wheel-test
+source /tmp/runtrace-wheel-test/bin/activate
+pip install dist/*.whl
+runtrace demo
+```
+
+## 7. Update changelog
 
 Move items from `Unreleased` into a versioned section, for example:
 
 ```markdown
-## 0.1.0 - YYYY-MM-DD
+## 0.2.0 - YYYY-MM-DD
 ```
 
-## 6. Create tag
+## 8. Create tag
+
+Only after all checks pass:
 
 ```bash
-git tag v0.1.0
-git push origin v0.1.0
+git tag v0.2.0
+git push origin v0.2.0
 ```
 
-## 7. Create GitHub release
+Do not force-push tags.
+
+## 9. Create GitHub release
 
 Use the changelog notes. Include the current limitations honestly.
 
-## 8. PyPI later
+## 10. Publish to PyPI manually later
 
-Do not configure PyPI publishing until:
+Do not publish from an automated agent session. When ready, follow [PYPI.md](PYPI.md):
 
-- package name availability is checked
-- project URLs are final
-- trusted publishing or credentials are configured
-- at least one non-editable install test passes from a clean environment
+```bash
+twine upload dist/*
+```
+
+Do not commit credentials, tokens, `.pypirc`, or environment files.

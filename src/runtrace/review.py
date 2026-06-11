@@ -1,55 +1,20 @@
 from __future__ import annotations
 
+from pathlib import Path
+
+from runtrace.config import load_review_config
 from runtrace.models import ReviewFinding, RunMetadata
 
-TEST_COMMAND_KEYWORDS = (
-    "pytest",
-    "unittest",
-    "npm test",
-    "pnpm test",
-    "yarn test",
-    "vitest",
-    "jest",
-    "cargo test",
-    "go test",
-)
 TEST_PASS_PATTERNS = ("passed", "all tests passed", "tests passed", "success", "ok")
 TEST_FAIL_PATTERNS = ("failed", "error", "traceback", "assertionerror", "tests failed")
-SENSITIVE_PATTERNS = (
-    ".env",
-    "secret",
-    "token",
-    "credential",
-    "password",
-    "auth",
-    "login",
-    "session",
-    "jwt",
-    "oauth",
-    "config",
-    "settings",
-)
-DEPENDENCY_CONFIG_PATTERNS = (
-    "package.json",
-    "package-lock.json",
-    "pnpm-lock.yaml",
-    "yarn.lock",
-    "pyproject.toml",
-    "requirements.txt",
-    "uv.lock",
-    "poetry.lock",
-    "dockerfile",
-    "docker-compose.yml",
-    ".github/workflows",
-)
 
 
-def contains_any(text: str, patterns: tuple[str, ...]) -> bool:
+def contains_any(text: str, patterns: list[str] | tuple[str, ...]) -> bool:
     low = text.lower()
     return any(pattern.lower() in low for pattern in patterns)
 
 
-def matching_paths(paths: list[str], patterns: tuple[str, ...]) -> list[str]:
+def matching_paths(paths: list[str], patterns: list[str] | tuple[str, ...]) -> list[str]:
     return [path for path in paths if contains_any(path, patterns)]
 
 
@@ -61,20 +26,24 @@ def finding(name: str, title: str, status: str, detail: str) -> ReviewFinding:
     return ReviewFinding(name=name, title=title, status=status, detail=detail)  # type: ignore[arg-type]
 
 
-def build_review_findings(metadata: RunMetadata) -> list[ReviewFinding]:
+def build_review_findings(metadata: RunMetadata, cwd: str | Path | None = None) -> list[ReviewFinding]:
+    config = load_review_config(cwd or metadata.cwd)
     command_text = metadata.command_shell + " " + " ".join(metadata.command)
     output = metadata.output_preview
     changed_files = metadata.changed_files
 
-    tests_detected = contains_any(command_text, TEST_COMMAND_KEYWORDS) or contains_any(output, TEST_COMMAND_KEYWORDS)
+    tests_detected = contains_any(command_text, config.test_commands) or contains_any(output, config.test_commands)
     pass_pattern = contains_any(output, TEST_PASS_PATTERNS)
     fail_pattern = contains_any(output, TEST_FAIL_PATTERNS)
     tests_likely_passed = tests_detected and pass_pattern and not fail_pattern and metadata.succeeded
     tests_likely_failed = tests_detected and (fail_pattern or metadata.exit_code not in (0, None))
 
-    sensitive = matching_paths(changed_files, SENSITIVE_PATTERNS)
-    dependency_config = matching_paths(changed_files, DEPENDENCY_CONFIG_PATTERNS)
-    large_diff = len(changed_files) > 20 or diff_stat_line_count(metadata.diff_stat_after) > 20
+    sensitive = matching_paths(changed_files, config.sensitive_patterns)
+    dependency_config = matching_paths(changed_files, config.dependency_patterns)
+    large_diff = (
+        len(changed_files) > config.large_diff_file_limit
+        or diff_stat_line_count(metadata.diff_stat_after) > config.large_diff_file_limit
+    )
     git_available = metadata.git_after.git_available or metadata.git_before.git_available
 
     return [
@@ -96,7 +65,7 @@ def build_review_findings(metadata: RunMetadata) -> list[ReviewFinding]:
             "tests_detected",
             "Tests detected",
             "pass" if tests_detected else "unknown",
-            "Detected a common test command or output pattern." if tests_detected else "No test command detected.",
+            "Detected a configured test command or output pattern." if tests_detected else "No test command detected.",
         ),
         finding(
             "tests_likely_passed",
@@ -128,7 +97,7 @@ def build_review_findings(metadata: RunMetadata) -> list[ReviewFinding]:
             "large_diff",
             "Large diff",
             "warn" if large_diff else "pass",
-            f"{len(changed_files)} changed file(s).",
+            f"{len(changed_files)} changed file(s); limit is {config.large_diff_file_limit}.",
         ),
         finding(
             "no_git_repo",

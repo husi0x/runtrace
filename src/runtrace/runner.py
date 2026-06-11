@@ -1,11 +1,20 @@
 from __future__ import annotations
 
 import os
-import pty
-import select
 import subprocess
 import sys
 from pathlib import Path
+
+
+def _pty_is_available() -> bool:
+    if os.name != "posix" or not sys.stdin.isatty():
+        return False
+    try:
+        import pty  # noqa: F401
+        import select  # noqa: F401
+    except ImportError:
+        return False
+    return True
 
 
 def run_command(command: list[str], cwd: Path, output_log: Path, use_pty: bool | None = None) -> int:
@@ -13,8 +22,8 @@ def run_command(command: list[str], cwd: Path, output_log: Path, use_pty: bool |
         raise ValueError("No command provided after --")
     output_log.parent.mkdir(parents=True, exist_ok=True)
     if use_pty is None:
-        use_pty = sys.stdin.isatty() and os.name == "posix"
-    if use_pty:
+        use_pty = _pty_is_available()
+    if use_pty and _pty_is_available():
         return _run_with_pty(command, cwd, output_log)
     return _run_with_subprocess(command, cwd, output_log)
 
@@ -38,6 +47,9 @@ def _run_with_subprocess(command: list[str], cwd: Path, output_log: Path) -> int
 
 
 def _run_with_pty(command: list[str], cwd: Path, output_log: Path) -> int:
+    import pty
+    import select
+
     pid, fd = pty.fork()
     if pid == 0:
         os.chdir(cwd)

@@ -26,27 +26,27 @@ open-source
 
 ## Suggested social preview
 
-Use this image after it is generated and committed:
+Use the committed hero image:
 
 ```text
 assets/runtrace-hero.png
 ```
 
-Do not configure a social preview until the real image exists.
-
-## Suggested first release title
+## Suggested release title
 
 ```text
-Runtrace v0.1.0 — a black box for AI coding agents
+Runtrace v0.2.0 — run index, JSON export, and configurable review rules
 ```
 
 ## Suggested release notes
 
-- Initial CLI
-- Run recording
-- Git snapshots
+- Local command recording
+- Git snapshots before and after each run
 - Markdown and HTML reports
-- Deterministic review checklist
+- Project-level report index page
+- Compact JSON summary export
+- Configurable deterministic review rules
+- Safer cross-platform subprocess mode with `--no-pty`
 - Safe `runtrace demo` command
 - GitHub Actions CI
 
@@ -55,6 +55,7 @@ Runtrace v0.1.0 — a black box for AI coding agents
 Before pushing publicly:
 
 - run `bash scripts/smoke.sh`
+- run `python -m build && twine check dist/*`
 - review `SECURITY.md`
-- add social preview after `assets/runtrace-hero.png` exists
 - review `.runtrace/` is ignored and not committed
+- do not commit PyPI credentials or tokens
