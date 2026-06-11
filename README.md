@@ -9,6 +9,9 @@
 </p>
 
 <p align="center">
+  <img src="assets/runtrace-hero.png" alt="Runtrace — a black box for AI coding agents" width="100%">
+</p>
+<p align="center">
   <img alt="Python 3.11+" src="https://img.shields.io/badge/python-3.11%2B-blue">
   <img alt="License MIT" src="https://img.shields.io/badge/license-MIT-green">
   <img alt="CLI" src="https://img.shields.io/badge/interface-CLI-black">
@@ -16,9 +19,6 @@
 </p>
 
 
-<p align="center">
-  <img src="assets/runtrace-hero.png" alt="Runtrace — a black box for AI coding agents" width="100%">
-</p>
 
 
 ## Try it in 30 seconds
