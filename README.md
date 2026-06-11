@@ -25,7 +25,7 @@ git clone https://github.com/husi0x/runtrace.git
 cd runtrace
 python -m venv .venv
 source .venv/bin/activate
-pip install -e .
+pip install .
 runtrace demo
 ```
 
@@ -167,10 +167,6 @@ See [docs/CLI.md](docs/CLI.md), [docs/REPORTS.md](docs/REPORTS.md), and [example
 - [Security](SECURITY.md)
 - [Changelog](CHANGELOG.md)
 - [License](LICENSE)
-
-## Assets
-
-README visuals live in [assets/](assets/).
 
 ## Roadmap
 
