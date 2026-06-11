@@ -1,0 +1,475 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ metadata.name }} · Runtrace report</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #070a12;
+      --bg-soft: #0b1020;
+      --panel: rgba(16, 24, 39, 0.92);
+      --panel-2: rgba(10, 15, 28, 0.9);
+      --border: rgba(148, 163, 184, 0.18);
+      --border-strong: rgba(148, 163, 184, 0.28);
+      --text: #f8fafc;
+      --muted: #b6c2d1;
+      --faint: #8ea0b5;
+      --green: #22c55e;
+      --red: #fb7185;
+      --amber: #fbbf24;
+      --blue: #60a5fa;
+      --violet: #a78bfa;
+      --shadow: 0 24px 70px rgba(0, 0, 0, 0.38);
+      --radius: 22px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: var(--sans);
+      background:
+        radial-gradient(circle at 18% -8%, rgba(96, 165, 250, 0.18), transparent 34rem),
+        radial-gradient(circle at 92% 4%, rgba(167, 139, 250, 0.16), transparent 30rem),
+        linear-gradient(180deg, #080b14 0%, #070a12 100%);
+      color: var(--text);
+    }
+
+    main {
+      width: min(1160px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 32px 0 56px;
+    }
+
+    .hero {
+      position: relative;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      border-radius: 30px;
+      padding: 30px;
+      background: linear-gradient(135deg, rgba(15, 23, 42, 0.96), rgba(9, 14, 26, 0.96));
+      box-shadow: var(--shadow);
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      inset: auto -20% -60% 25%;
+      height: 220px;
+      background: linear-gradient(90deg, transparent, rgba(96, 165, 250, 0.16), transparent);
+      filter: blur(30px);
+      transform: rotate(-8deg);
+    }
+
+    .topline {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 24px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      color: #cbd5e1;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+
+    .logo {
+      display: grid;
+      place-items: center;
+      width: 34px;
+      height: 34px;
+      border-radius: 11px;
+      background: linear-gradient(135deg, rgba(96, 165, 250, 0.28), rgba(167, 139, 250, 0.24));
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: white;
+      font-family: var(--mono);
+      font-size: 14px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 34px;
+      padding: 7px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(15, 23, 42, 0.68);
+      color: #cbd5e1;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    a.pill {
+      text-decoration: none;
+      transition: border-color 160ms ease, color 160ms ease, transform 160ms ease;
+    }
+
+    a.pill:hover {
+      border-color: rgba(96, 165, 250, 0.55);
+      color: #dbeafe;
+      transform: translateY(-1px);
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: var(--green);
+      box-shadow: 0 0 18px rgba(34, 197, 94, 0.8);
+    }
+
+    .dot.failure {
+      background: var(--red);
+      box-shadow: 0 0 18px rgba(251, 113, 133, 0.75);
+    }
+
+    h1 {
+      margin: 0;
+      max-width: 880px;
+      font-size: clamp(34px, 5vw, 64px);
+      line-height: 0.96;
+      letter-spacing: -0.06em;
+      position: relative;
+      z-index: 1;
+    }
+
+    .subtitle {
+      max-width: 740px;
+      margin: 18px 0 0;
+      color: var(--muted);
+      font-size: 17px;
+      line-height: 1.65;
+      position: relative;
+      z-index: 1;
+    }
+
+    .command-strip {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-top: 26px;
+      padding: 14px 16px;
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      background: rgba(2, 6, 23, 0.72);
+      position: relative;
+      z-index: 1;
+    }
+
+    code, pre {
+      font-family: var(--mono);
+    }
+
+    .command-strip code {
+      color: #dbeafe;
+      overflow-wrap: anywhere;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 16px;
+      margin-top: 16px;
+    }
+
+    .card, section {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--panel);
+      box-shadow: 0 12px 38px rgba(0, 0, 0, 0.22);
+    }
+
+    .card {
+      grid-column: span 3;
+      padding: 18px;
+    }
+
+    .card.wide { grid-column: span 6; }
+    .card.full { grid-column: span 12; }
+
+    .label {
+      color: var(--faint);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .value {
+      color: var(--text);
+      font-size: 18px;
+      font-weight: 750;
+      letter-spacing: -0.02em;
+      overflow-wrap: anywhere;
+    }
+
+    .value.small {
+      font-family: var(--mono);
+      font-size: 13px;
+      font-weight: 600;
+      color: #cbd5e1;
+      line-height: 1.55;
+    }
+
+    section {
+      margin-top: 16px;
+      padding: 22px;
+    }
+
+    .section-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    h2 {
+      margin: 0;
+      font-size: 19px;
+      letter-spacing: -0.03em;
+    }
+
+    .hint {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .file-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 10px;
+      padding: 0;
+      margin: 0;
+      list-style: none;
+    }
+
+    .file-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: rgba(15, 23, 42, 0.62);
+    }
+
+    .file-icon {
+      flex: 0 0 auto;
+      display: grid;
+      place-items: center;
+      width: 28px;
+      height: 28px;
+      border-radius: 9px;
+      background: rgba(96, 165, 250, 0.13);
+      color: var(--blue);
+      font-family: var(--mono);
+      font-size: 12px;
+    }
+
+    .file-name {
+      min-width: 0;
+      font-family: var(--mono);
+      font-size: 13px;
+      color: #dbeafe;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .checklist {
+      display: grid;
+      gap: 10px;
+    }
+
+    .finding {
+      display: grid;
+      grid-template-columns: 90px 1fr;
+      gap: 14px;
+      align-items: start;
+      padding: 14px;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: rgba(2, 6, 23, 0.36);
+    }
+
+    .badge {
+      display: inline-flex;
+      justify-content: center;
+      align-items: center;
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .badge.pass { background: rgba(34, 197, 94, 0.12); color: var(--green); }
+    .badge.info { background: rgba(96, 165, 250, 0.12); color: var(--blue); }
+    .badge.unknown { background: rgba(148, 163, 184, 0.14); color: #dbe4ef; }
+    .badge.warn { background: rgba(251, 191, 36, 0.13); color: var(--amber); }
+    .badge.fail { background: rgba(251, 113, 133, 0.13); color: var(--red); }
+
+    .finding-title {
+      font-weight: 760;
+      letter-spacing: -0.02em;
+    }
+
+    .finding-detail {
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    pre {
+      margin: 0;
+      padding: 16px;
+      max-height: 420px;
+      overflow: auto;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: #020617;
+      color: #cbd5e1;
+      font-size: 13px;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+
+    .empty {
+      padding: 20px;
+      border: 1px dashed var(--border-strong);
+      border-radius: 16px;
+      color: var(--muted);
+      background: rgba(15, 23, 42, 0.42);
+    }
+
+    .footer-note {
+      margin-top: 18px;
+      color: var(--faint);
+      font-size: 13px;
+      text-align: center;
+    }
+
+    @media (max-width: 860px) {
+      main { width: min(100% - 20px, 1160px); padding-top: 14px; }
+      .hero { padding: 22px; border-radius: 24px; }
+      .topline, .command-strip, .section-head { flex-direction: column; align-items: flex-start; }
+      .card, .card.wide { grid-column: span 12; }
+      .finding { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+<main>
+  <header class="hero">
+    <div class="topline">
+      <div class="brand"><span class="logo">rt</span> Runtrace</div>
+      <div class="pill"><span class="dot {{ 'success' if metadata.succeeded else 'failure' }}"></span>{{ 'Successful run' if metadata.succeeded else 'Failed run' }}</div>
+    </div>
+
+    <h1>{{ metadata.name }}</h1>
+    <p class="subtitle">A readable black-box report for an AI-agent or shell-command run: command, output, git state, changed files, and review signals in one local artifact.</p>
+
+    <div class="command-strip">
+      <code>{{ metadata.command_shell }}</code>
+      <span class="pill">{{ metadata.run_id }}</span>
+    </div>
+  </header>
+
+  <div class="grid">
+    <div class="card"><div class="label">Result</div><div class="value">{{ 'Success' if metadata.succeeded else 'Failure' }}</div></div>
+    <div class="card"><div class="label">Exit code</div><div class="value">{{ metadata.exit_code }}</div></div>
+    <div class="card"><div class="label">Duration</div><div class="value">{{ metadata.duration_seconds }}s</div></div>
+    <div class="card"><div class="label">Changed files</div><div class="value">{{ metadata.changed_files|length }}</div></div>
+    <div class="card wide"><div class="label">Started</div><div class="value small">{{ metadata.start_time }}</div></div>
+    <div class="card wide"><div class="label">Finished</div><div class="value small">{{ metadata.end_time }}</div></div>
+    <div class="card full"><div class="label">Working directory</div><div class="value small">{{ metadata.cwd }}</div></div>
+  </div>
+
+  <section>
+    <div class="section-head">
+      <div><h2>Git state</h2><p class="hint">Before and after snapshot of the repository around the run.</p></div>
+      <span class="pill">working tree changed: {{ metadata.working_tree_changed }}</span>
+    </div>
+    <div class="grid">
+      <div class="card wide">
+        <div class="label">Before</div>
+        <div class="value small">branch: {{ metadata.git_before.branch or 'none' }}<br>commit: {{ metadata.git_before.head_sha or 'none' }}</div>
+      </div>
+      <div class="card wide">
+        <div class="label">After</div>
+        <div class="value small">branch: {{ metadata.git_after.branch or 'none' }}<br>commit: {{ metadata.git_after.head_sha or 'none' }}</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <div><h2>Changed files</h2><p class="hint">Files touched after the command finished.</p></div>
+      <span class="pill">{{ metadata.changed_files|length }} files</span>
+    </div>
+    {% if metadata.changed_files %}
+      <ul class="file-list">
+        {% for file in metadata.changed_files %}
+          <li class="file-item"><span class="file-icon">Δ</span><span class="file-name" title="{{ file }}">{{ file }}</span></li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <div class="empty">No changed files detected.</div>
+    {% endif %}
+  </section>
+
+  <section>
+    <div class="section-head">
+      <div><h2>Review checklist</h2><p class="hint">Deterministic checks to help decide what needs human attention.</p></div>
+    </div>
+    <div class="checklist">
+      {% for finding in summary.findings %}
+        <div class="finding">
+          <span class="badge {{ finding.status }}">{{ finding.status }}</span>
+          <div>
+            <div class="finding-title">{{ finding.title }}</div>
+            <div class="finding-detail">{{ finding.detail }}</div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <div><h2>Diff stat</h2><p class="hint">Compact git diff summary. Full diff stays in metadata.json.</p></div>
+    </div>
+    <pre>{{ metadata.diff_stat_after or 'No diff stat available.' }}</pre>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <div><h2>Command output</h2><p class="hint">Full output is saved next to this report as output.log.</p></div>
+      <a class="pill" href="output.log">open output.log</a>
+    </div>
+    <pre>{{ metadata.output_preview[-3000:] or 'No command output captured.' }}</pre>
+  </section>
+
+  <p class="footer-note">Generated locally by Runtrace. No network, no external assets, no CDN.</p>
+</main>
+</body>
+</html>
