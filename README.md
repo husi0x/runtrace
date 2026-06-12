@@ -54,6 +54,10 @@ report.html      # self-contained HTML report
 
 Runtrace records command timing, exit code, live output, git branch/commit/status/diff when available, changed files, and deterministic review findings.
 
+<p align="center">
+  <img src="assets/runtrace-report-preview.png" alt="Runtrace HTML report preview" width="92%">
+</p>
+
 If the directory is not a git repository, Runtrace still records command output and marks git tracking as unavailable.
 
 ## Example workflows
