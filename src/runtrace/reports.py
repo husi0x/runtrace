@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 from typing import Any
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
+from runtrace import __version__
 from runtrace.models import ReportSummary, RunMetadata
 from runtrace.paths import relative_to_cwd, runtrace_dir
 from runtrace.recorder import list_runs, load_metadata, resolve_run_id, run_dir_for
@@ -151,11 +153,153 @@ def generate_markdown_report(cwd: str | Path = ".", run_id: str | None = None) -
     return path
 
 
+def _short_sha(value: str | None) -> str:
+    return value[:7] if value else "none"
+
+
+def _format_time(value) -> str:
+    if not value:
+        return "Not finished"
+    return value.strftime("%d %b %Y, %H:%M UTC")
+
+
+def _format_duration(seconds: float) -> str:
+    if seconds < 1:
+        return f"{round(seconds * 1000)}ms"
+    if seconds < 60:
+        return f"{seconds:.1f}s"
+    minutes, remainder = divmod(seconds, 60)
+    return f"{int(minutes)}m {remainder:.0f}s"
+
+
+def _agent_label(metadata: RunMetadata) -> str:
+    command = " ".join(metadata.command).lower()
+    if "codex" in command:
+        return "Codex"
+    if "claude" in command:
+        return "Claude"
+    if "opencode" in command:
+        return "OpenCode"
+    return "Runtrace CLI"
+
+
+def _review_display(finding) -> dict[str, str | bool]:
+    is_done = finding.status == "pass"
+    passed_title_overrides = {
+        "no_git_repo": "Git snapshot available",
+        "command_failed": "No command failure",
+        "tests_likely_failed": "No likely test failures",
+        "sensitive_files_touched": "No sensitive files touched",
+        "dependency_config_touched": "No dependency/config files touched",
+        "large_diff": "Diff size within review limit",
+    }
+    neutral_title_overrides = {
+        "no_git_repo": "Git snapshot available",
+        "command_failed": "No command failure",
+        "tests_likely_failed": "No likely test failures",
+    }
+    if finding.status == "fail":
+        state = "Attention"
+        tone = "fail"
+    elif finding.status == "warn":
+        state = "Review"
+        tone = "review"
+    elif is_done:
+        state = "Done"
+        tone = "done"
+    else:
+        state = "Pending"
+        tone = "pending"
+    title = passed_title_overrides.get(finding.name, finding.title) if is_done else neutral_title_overrides.get(
+        finding.name, finding.title
+    )
+    return {
+        "title": title,
+        "detail": finding.detail,
+        "done": is_done,
+        "state": state,
+        "tone": tone,
+    }
+
+
+def _parse_diff_totals(diff_stat: str) -> dict[str, int]:
+    text = diff_stat or ""
+    insertions = 0
+    deletions = 0
+    files_changed = 0
+
+    summary_match = re.search(r"(\d+)\s+files? changed", text)
+    if summary_match:
+        files_changed = int(summary_match.group(1))
+    insertion_match = re.search(r"(\d+)\s+insertions?\(\+\)", text)
+    if insertion_match:
+        insertions = int(insertion_match.group(1))
+    deletion_match = re.search(r"(\d+)\s+deletions?\(-\)", text)
+    if deletion_match:
+        deletions = int(deletion_match.group(1))
+
+    # `git diff --stat` may omit the summary line for untracked-only changes.
+    if not files_changed:
+        files_changed = len([line for line in text.splitlines() if "|" in line or line.strip().startswith("Untracked")])
+
+    total = insertions + deletions
+    insert_pct = round((insertions / total) * 100, 1) if total else 0
+    delete_pct = round((deletions / total) * 100, 1) if total else 0
+    return {
+        "files_changed": files_changed,
+        "insertions": insertions,
+        "deletions": deletions,
+        "insert_pct": insert_pct,
+        "delete_pct": delete_pct,
+    }
+
+
+def _changed_file_rows(metadata: RunMetadata) -> list[dict[str, str]]:
+    rows: list[dict[str, str]] = []
+    added = set(metadata.files_added)
+    modified = set(metadata.files_modified)
+    deleted = set(metadata.files_deleted)
+    for index, path in enumerate(metadata.changed_files, start=1):
+        if path in added:
+            change_type = "Added"
+        elif path in deleted:
+            change_type = "Deleted"
+        elif path in modified:
+            change_type = "Modified"
+        else:
+            change_type = "Changed"
+        rows.append({"index": str(index), "path": path, "change_type": change_type})
+    return rows
+
+
+def _report_view_model(cwd: str | Path, run_id: str, metadata: RunMetadata, summary: ReportSummary) -> dict[str, Any]:
+    repo = metadata.git_after.repo_root or metadata.git_before.repo_root or metadata.cwd
+    report_path = relative_to_cwd(run_dir_for(cwd, run_id) / "report.html", cwd)
+    return {
+        "version": __version__,
+        "report_path": report_path,
+        "repository": repo,
+        "repository_name": Path(repo).name if repo else "repository",
+        "branch": metadata.git_after.branch or metadata.git_before.branch or "none",
+        "before_sha": _short_sha(metadata.git_before.head_sha),
+        "after_sha": _short_sha(metadata.git_after.head_sha),
+        "started_display": _format_time(metadata.start_time),
+        "finished_display": _format_time(metadata.end_time),
+        "duration_display": _format_duration(metadata.duration_seconds),
+        "diff": _parse_diff_totals(metadata.diff_stat_after),
+        "changed_file_rows": _changed_file_rows(metadata),
+        "review_rows": [_review_display(finding) for finding in summary.findings],
+        "run_by": "Local user",
+        "agent": _agent_label(metadata),
+    }
+
+
 def generate_html_report(cwd: str | Path = ".", run_id: str | None = None) -> Path:
     actual_id, metadata = _metadata_for_report(cwd, run_id)
     summary = build_report_summary(metadata)
     run_dir = run_dir_for(cwd, actual_id)
-    html = _template_env().get_template("report.html.j2").render(summary=summary, metadata=metadata)
+    view = _report_view_model(cwd, actual_id, metadata, summary)
+    html = _template_env().get_template("report.html.j2").render(summary=summary, metadata=metadata, view=view)
     path = run_dir / "report.html"
     path.write_text(html, encoding="utf-8")
     return path
