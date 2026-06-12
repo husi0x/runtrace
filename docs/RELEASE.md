@@ -35,14 +35,14 @@ runtrace show latest
 runtrace report
 ```
 
-## 4. Run non-editable install smoke test
+## 4. Run PyPI-style install smoke test
 
-From outside the repository:
+Test the public install path in a clean environment:
 
 ```bash
 python -m venv /tmp/runtrace-test-venv
 source /tmp/runtrace-test-venv/bin/activate
-pip install /path/to/runtrace
+pip install runtrace
 runtrace --help
 runtrace demo
 runtrace index
@@ -56,7 +56,7 @@ python -m runtrace --help
 
 ## 5. Build and check distributions
 
-See [PYPI.md](PYPI.md) for full PyPI prep.
+See [PYPI.md](PYPI.md) for PyPI package maintenance.
 
 ```bash
 python -m pip install build twine
@@ -79,7 +79,7 @@ runtrace demo
 Move items from `Unreleased` into a versioned section, for example:
 
 ```markdown
-## 0.2.0 - YYYY-MM-DD
+## X.Y.Z - YYYY-MM-DD
 ```
 
 ## 8. Create tag
@@ -87,8 +87,8 @@ Move items from `Unreleased` into a versioned section, for example:
 Only after all checks pass:
 
 ```bash
-git tag v0.2.0
-git push origin v0.2.0
+git tag vX.Y.Z
+git push origin vX.Y.Z
 ```
 
 Do not force-push tags.
@@ -97,12 +97,12 @@ Do not force-push tags.
 
 Use the changelog notes. Include the current limitations honestly.
 
-## 10. Publish to PyPI manually later
+## 10. Publish future versions to PyPI manually
 
-Do not publish from an automated agent session. When ready, follow [PYPI.md](PYPI.md):
+Runtrace is already published at <https://pypi.org/project/runtrace/>. For future versions, follow [PYPI.md](PYPI.md):
 
 ```bash
 twine upload dist/*
 ```
 
-Do not commit credentials, tokens, `.pypirc`, or environment files.
+Do not commit credentials, tokens, `.pypirc`, or environment files. Prefer project-scoped PyPI tokens for `runtrace`.

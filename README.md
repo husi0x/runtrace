@@ -13,6 +13,8 @@
 </p>
 
 <p align="center">
+  <a href="https://pypi.org/project/runtrace/"><img alt="PyPI" src="https://img.shields.io/pypi/v/runtrace"></a>
+  <a href="https://pypi.org/project/runtrace/"><img alt="PyPI downloads" src="https://img.shields.io/pypi/dm/runtrace"></a>
   <img alt="Python 3.11+" src="https://img.shields.io/badge/python-3.11%2B-blue">
   <img alt="License MIT" src="https://img.shields.io/badge/license-MIT-green">
   <img alt="CLI" src="https://img.shields.io/badge/interface-CLI-black">
@@ -21,19 +23,20 @@
 
 ## Try it in 30 seconds
 
+`pipx` is recommended for CLI usage:
+
 ```bash
-git clone https://github.com/husi0x/runtrace.git
-cd runtrace
-python -m venv .venv
-source .venv/bin/activate
-pip install "$PWD"
+pipx install runtrace
 runtrace demo
 ```
 
-Runtrace prints the report paths after `demo`:
+Runtrace prints the generated report paths after `demo`.
+
+Without `pipx`:
 
 ```bash
-xdg-open .runtrace/runs/<printed-run-id>/report.html
+python -m pip install --user runtrace
+runtrace demo
 ```
 
 ## Why Runtrace?
@@ -133,27 +136,27 @@ Reports may include command output, file paths, and git diffs. Review them befor
 
 See [SECURITY.md](SECURITY.md) for practical security notes.
 
-## Verify locally
+## Development install
+
+For contributors and local development only:
 
 ```bash
+git clone https://github.com/husi0x/runtrace.git
+cd runtrace
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install -e '.[dev]'
 bash scripts/smoke.sh
 ```
 
-## Install with pipx from GitHub
-
-```bash
-pipx install git+https://github.com/husi0x/runtrace.git
-runtrace demo
-```
-
-PyPI release prep is documented in [docs/PYPI.md](docs/PYPI.md). Publishing is manual.
+Release maintenance is documented in [docs/PYPI.md](docs/PYPI.md).
 
 ## Docs
 
 - [CLI reference](docs/CLI.md)
 - [Reports and privacy](docs/REPORTS.md)
 - [Configuration](docs/CONFIG.md)
-- [PyPI release prep](docs/PYPI.md)
+- [PyPI package](docs/PYPI.md)
 - [Release checklist](docs/RELEASE.md)
 - [GitHub metadata](docs/GITHUB.md)
 - [Examples](examples/README.md)

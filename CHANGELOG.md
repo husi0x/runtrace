@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- README install flow now points to PyPI/pipx after first PyPI publication.
 - Report index page via `runtrace index` and `runtrace dashboard`.
 - Compact JSON summary export via `runtrace export`.
 - Configurable review rules via `.runtrace/config.toml` and `runtrace init`.

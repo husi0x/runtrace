@@ -2,6 +2,17 @@
 
 Runtrace is a local command-line tool. It records a command run, saves the output, captures git state when available, and generates reports.
 
+## Install
+
+For normal CLI usage, install from PyPI with pipx:
+
+```bash
+pipx install runtrace
+runtrace demo
+```
+
+For development setup, see [../CONTRIBUTING.md](../CONTRIBUTING.md).
+
 ## Basic shape
 
 ```bash
