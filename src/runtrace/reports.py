@@ -391,3 +391,41 @@ def export_summary(cwd: str | Path = ".", run_id: str | None = None) -> dict[str
 
 def export_summary_json(cwd: str | Path = ".", run_id: str | None = None) -> str:
     return json.dumps(export_summary(cwd, run_id), indent=2, ensure_ascii=False) + "\n"
+
+
+def render_pr_summary(cwd: str | Path = ".", run_id: str | None = None) -> str:
+    actual_id, metadata = _metadata_for_report(cwd, run_id)
+    findings = build_review_findings(metadata, cwd=cwd)
+    status = "success" if metadata.succeeded else "failed"
+    changed_files = "\n".join(f"- `{path}`" for path in metadata.changed_files) or "- No changed files detected"
+    checklist = "\n".join(f"- `{finding.status}` {finding.title}: {finding.detail}" for finding in findings)
+    report_paths = _report_paths(cwd, actual_id)
+    report_lines = [f"- {label}: `{path}`" for label, path in report_paths.items()]
+    reports = "\n".join(report_lines) or "- Reports have not been generated yet. Run `runtrace report`."
+
+    return f"""## Runtrace summary
+
+- Run: `{metadata.name}`
+- Run ID: `{metadata.run_id}`
+- Result: `{status}` / exit `{metadata.exit_code}`
+- Duration: `{_format_duration(metadata.duration_seconds)}`
+- Command: `{metadata.command_shell}`
+
+## Commands run
+
+```bash
+{metadata.command_shell}
+```
+
+## Changed files
+
+{changed_files}
+
+## Review checklist
+
+{checklist}
+
+## Artifacts
+
+{reports}
+"""

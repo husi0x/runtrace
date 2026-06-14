@@ -180,6 +180,16 @@ Export one run:
 runtrace export --run-id <run_id> --output summary.json
 ```
 
+### `runtrace pr-summary`
+
+Print a copy-ready Markdown summary for a GitHub PR or issue. It includes the run result, command, changed files, review checklist, and artifact paths when reports exist.
+
+```bash
+runtrace pr-summary
+runtrace pr-summary --run-id <run_id>
+runtrace pr-summary --output pr.md
+```
+
 ### `runtrace list`
 
 List previous runs, newest first.

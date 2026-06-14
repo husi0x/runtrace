@@ -19,7 +19,13 @@ from runtrace.recorder import (
     record_run,
     resolve_run_id,
 )
-from runtrace.reports import build_report_summary, export_summary_json, generate_index_page, generate_reports
+from runtrace.reports import (
+    build_report_summary,
+    export_summary_json,
+    generate_index_page,
+    generate_reports,
+    render_pr_summary,
+)
 
 app = typer.Typer(
     help="Runtrace — a black box for AI coding agents.",
@@ -221,6 +227,27 @@ def export_cmd(
         return
     output.write_text(text, encoding="utf-8")
     console.print(f"[green]Wrote JSON summary:[/] {relative_to_cwd(output)}")
+
+
+@app.command("pr-summary")
+def pr_summary_cmd(
+    run_id: Annotated[str | None, typer.Option("--run-id", help="Run ID to summarize. Defaults to latest.")] = None,
+    output: Annotated[
+        Path | None,
+        typer.Option("--output", "-o", help="Write Markdown PR summary to this file."),
+    ] = None,
+) -> None:
+    """Print a copy-ready Markdown summary for GitHub PRs."""
+    try:
+        text = render_pr_summary(Path.cwd(), run_id)
+    except FileNotFoundError:
+        _print_error("No runs found yet.", "runtrace demo")
+        raise typer.Exit(1) from None
+    if output is None:
+        sys.stdout.write(text)
+        return
+    output.write_text(text, encoding="utf-8")
+    console.print(f"[green]Wrote PR summary:[/] {relative_to_cwd(output)}")
 
 
 def _render_runs_table() -> None:

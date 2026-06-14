@@ -96,6 +96,8 @@ runtrace run --no-pty --name "tests" -- pytest -q
 | `runtrace dashboard` | Alias for `runtrace index` |
 | `runtrace export` | Prints a compact JSON summary for the latest run |
 | `runtrace export --output summary.json` | Writes the JSON summary to a file |
+| `runtrace pr-summary` | Prints a copy-ready Markdown summary for GitHub PRs |
+| `runtrace pr-summary --output pr.md` | Writes the PR summary to a file |
 | `runtrace list` | Lists previous runs |
 | `runtrace runs` | Alias for `runtrace list` |
 | `runtrace show <run_id>` | Shows one run in the terminal |
