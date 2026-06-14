@@ -66,15 +66,14 @@ Use it with Codex:
 
 ```bash
 runtrace run --name "codex bugfix" -- codex exec "fix the failing tests"
-runtrace report
-runtrace show latest
+runtrace report --open
+runtrace pr-summary
 ```
 
 Use it with tests:
 
 ```bash
-runtrace run --name "pytest baseline" -- pytest -q
-runtrace report
+runtrace run --report --open --name "pytest baseline" -- pytest -q
 ```
 
 Use portable subprocess mode when you do not want best-effort PTY handling:
@@ -91,7 +90,11 @@ runtrace run --no-pty --name "tests" -- pytest -q
 | `runtrace demo` | Records a safe demo run and generates reports |
 | `runtrace run -- <command>` | Records any command |
 | `runtrace run --no-pty -- <command>` | Records a command with portable subprocess mode |
+| `runtrace run --report -- <command>` | Records a command and generates reports immediately |
 | `runtrace report` | Generates Markdown and HTML reports |
+| `runtrace report --open` | Generates reports and opens the HTML report |
+| `runtrace open` | Opens the latest HTML report, generating it if missing |
+| `runtrace open <run_id>` | Opens one run's HTML report |
 | `runtrace index` | Generates `.runtrace/index.html` for all runs |
 | `runtrace dashboard` | Alias for `runtrace index` |
 | `runtrace doctor` | Checks local Runtrace readiness and latest artifacts |

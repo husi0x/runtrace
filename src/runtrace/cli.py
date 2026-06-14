@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import subprocess
 import sys
 from pathlib import Path
 from typing import Annotated
@@ -34,6 +35,24 @@ app = typer.Typer(
     add_completion=False,
 )
 console = Console()
+
+
+def _open_path(path: Path) -> None:
+    opener = "open" if sys.platform == "darwin" else "xdg-open"
+    subprocess.run([opener, str(path)], check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+
+def _html_report_path(cwd: Path, run_id: str) -> Path:
+    return run_dir(cwd, run_id) / "report.html"
+
+
+def _open_html_report(cwd: Path, run_id: str) -> Path:
+    report_html = _html_report_path(cwd, run_id)
+    if not report_html.exists():
+        generate_reports(cwd, run_id, "html")
+    _open_path(report_html)
+    console.print(f"[green]Opened HTML report:[/] {relative_to_cwd(report_html)}")
+    return report_html
 
 
 def _print_error(message: str, next_step: str | None = None) -> None:
@@ -116,6 +135,11 @@ def run(
             ),
         ),
     ] = False,
+    report: Annotated[
+        bool,
+        typer.Option("--report", help="Generate Markdown and HTML reports after recording."),
+    ] = False,
+    open_report: Annotated[bool, typer.Option("--open", help="Open the HTML report after --report.")] = False,
 ) -> None:
     """Record any command.
 
@@ -150,11 +174,17 @@ def run(
     status = "success" if metadata.succeeded else "failed"
     color = "green" if metadata.succeeded else "red"
     run_folder = relative_to_cwd(run_dir(Path.cwd(), metadata.run_id))
+    report_line = ""
+    if report or open_report:
+        generate_reports(Path.cwd(), metadata.run_id, "both")
+        report_path = relative_to_cwd(_html_report_path(Path.cwd(), metadata.run_id))
+        report_line = f"[bold]Report generated:[/bold] {report_path}\n"
     message = (
         f"[bold]Run ID:[/bold] {metadata.run_id}\n"
         f"[bold]Status:[/bold] [{color}]{status}[/]\n"
         f"[bold]Exit code:[/bold] {metadata.exit_code}\n"
-        f"[bold]Run folder:[/bold] {run_folder}\n\n"
+        f"[bold]Run folder:[/bold] {run_folder}\n"
+        f"{report_line}\n"
         f"[bold]Next:[/bold]\n"
         f"  runtrace report --run-id {metadata.run_id}\n"
         f"  runtrace show {metadata.run_id}"
@@ -162,6 +192,8 @@ def run(
     if not metadata.succeeded:
         message += f"\n\n[yellow]Command exited with code {metadata.exit_code}. The run was recorded anyway.[/]"
     console.print(Panel(message, title="Runtrace run recorded", border_style=color))
+    if open_report:
+        _open_html_report(Path.cwd(), metadata.run_id)
     raise typer.Exit(metadata.exit_code or 0)
 
 
@@ -169,6 +201,7 @@ def run(
 def report_cmd(
     run_id: Annotated[str | None, typer.Option("--run-id", help="Run ID to report. Defaults to latest.")] = None,
     fmt: Annotated[str, typer.Option("--format", "-f", help="md, html, or both")] = "both",
+    open_report: Annotated[bool, typer.Option("--open", help="Open the HTML report after generating it.")] = False,
 ) -> None:
     """Generate Markdown and/or HTML reports for a run."""
     try:
@@ -183,6 +216,25 @@ def report_cmd(
     actual_id = resolve_run_id(Path.cwd(), run_id)
     assert actual_id is not None
     _print_paths("Runtrace report generated", actual_id, paths)
+    if open_report:
+        _open_html_report(Path.cwd(), actual_id)
+
+
+@app.command("open")
+def open_cmd(
+    run_id: Annotated[str, typer.Argument(help="Run ID to open. Use 'latest' for newest.")] = "latest",
+) -> None:
+    """Open a run's HTML report, generating it first if needed."""
+    actual_id = resolve_run_id(Path.cwd(), run_id)
+    if not actual_id:
+        _print_error("No runs found yet.", "runtrace demo")
+        raise typer.Exit(1)
+    try:
+        load_metadata(Path.cwd(), actual_id)
+    except FileNotFoundError:
+        _print_error(f"Run not found: {run_id}", "runtrace list")
+        raise typer.Exit(1) from None
+    _open_html_report(Path.cwd(), actual_id)
 
 
 @app.command("index")

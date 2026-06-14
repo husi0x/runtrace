@@ -109,6 +109,8 @@ Record any command.
 ```bash
 runtrace run --name "hello" -- python -c "print('hello')"
 runtrace run --name "pytest baseline" -- pytest -q
+runtrace run --report --name "pytest baseline" -- pytest -q
+runtrace run --report --open --name "pytest baseline" -- pytest -q
 runtrace run --no-pty --name "pytest baseline" -- pytest -q
 runtrace run --name "codex bugfix" -- codex exec "fix the failing tests"
 ```
@@ -135,6 +137,21 @@ Choose a format:
 runtrace report --format md
 runtrace report --format html
 runtrace report --format both
+```
+
+Generate reports and open the HTML report:
+
+```bash
+runtrace report --open
+```
+
+### `runtrace open`
+
+Open the latest HTML report, generating it first if it is missing.
+
+```bash
+runtrace open
+runtrace open <run_id>
 ```
 
 ### `runtrace index`
