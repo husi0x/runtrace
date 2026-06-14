@@ -33,6 +33,7 @@ python -m json.tool summary.json >/dev/null
 runtrace list
 runtrace show latest
 runtrace report
+runtrace open --help
 ```
 
 ## 4. Run PyPI-style install smoke test
@@ -51,6 +52,7 @@ python -m json.tool summary.json >/dev/null
 runtrace list
 runtrace show latest
 runtrace report
+runtrace open --help
 python -m runtrace --help
 ```
 
@@ -72,6 +74,7 @@ python -m venv /tmp/runtrace-wheel-test
 source /tmp/runtrace-wheel-test/bin/activate
 pip install dist/*.whl
 runtrace demo
+runtrace open --help
 ```
 
 ## 7. Update changelog

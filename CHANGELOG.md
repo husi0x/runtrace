@@ -1,6 +1,15 @@
 # Changelog
 
-## Unreleased
+## 0.3.0 - 2026-06-14
+
+- Added artifact sanitizing for recorded metadata, output previews, git summaries, and logs. Common local paths and obvious secret-like values are masked before report generation.
+- Added `runtrace pr-summary` for copy-ready GitHub PR/issue summaries, with optional `--output` file writing.
+- Added `runtrace doctor` for checking local Runtrace readiness, git availability, run count, latest run, and report artifacts.
+- Added `runtrace open` to open the latest or selected HTML report, generating it first when missing.
+- Added `runtrace report --open` to generate reports and immediately open the HTML report.
+- Added `runtrace run --report` and `runtrace run --report --open` for the one-command record/report/open workflow.
+
+## 0.2.0 - 2026-06-14
 
 - README install flow now points to PyPI/pipx after first PyPI publication.
 - Report index page via `runtrace index` and `runtrace dashboard`.

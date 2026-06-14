@@ -12,6 +12,12 @@ Public install command:
 pipx install runtrace
 ```
 
+Upgrade an existing pipx install after a new release:
+
+```bash
+pipx upgrade runtrace
+```
+
 `pipx` is recommended for CLI usage because it installs Runtrace into an isolated environment and exposes the `runtrace` command.
 
 ## Build a future release
@@ -34,6 +40,7 @@ python -m venv /tmp/runtrace-wheel-test
 source /tmp/runtrace-wheel-test/bin/activate
 pip install dist/*.whl
 runtrace demo
+runtrace open --help
 ```
 
 Optional extra checks:
@@ -42,6 +49,7 @@ Optional extra checks:
 runtrace --help
 python -m runtrace --help
 runtrace index
+runtrace open --help
 runtrace export --output summary.json
 python -m json.tool summary.json >/dev/null
 ```
