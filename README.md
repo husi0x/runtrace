@@ -94,6 +94,7 @@ runtrace run --no-pty --name "tests" -- pytest -q
 | `runtrace report` | Generates Markdown and HTML reports |
 | `runtrace index` | Generates `.runtrace/index.html` for all runs |
 | `runtrace dashboard` | Alias for `runtrace index` |
+| `runtrace doctor` | Checks local Runtrace readiness and latest artifacts |
 | `runtrace export` | Prints a compact JSON summary for the latest run |
 | `runtrace export --output summary.json` | Writes the JSON summary to a file |
 | `runtrace pr-summary` | Prints a copy-ready Markdown summary for GitHub PRs |

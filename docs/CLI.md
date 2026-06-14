@@ -158,6 +158,14 @@ If there are no runs yet, Runtrace prints:
 No runs found yet. Try: runtrace demo
 ```
 
+### `runtrace doctor`
+
+Check local Runtrace readiness: working directory, git availability, number of recorded runs, latest run, and whether reports exist.
+
+```bash
+runtrace doctor
+```
+
 ### `runtrace export`
 
 Export a compact JSON summary for the latest run. The export does not include huge logs or full diffs.

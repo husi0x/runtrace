@@ -11,6 +11,7 @@ from rich.table import Table
 
 from runtrace import __version__
 from runtrace.config import write_default_config
+from runtrace.git_utils import is_git_repo
 from runtrace.paths import relative_to_cwd, run_dir
 from runtrace.recorder import (
     delete_old_runs,
@@ -205,6 +206,44 @@ def index_cmd() -> None:
 def dashboard_cmd() -> None:
     """Alias for runtrace index."""
     index_cmd()
+
+
+@app.command("doctor")
+def doctor_cmd() -> None:
+    """Check local Runtrace readiness and latest run artifacts."""
+    cwd = Path.cwd()
+    runs = list_runs(cwd)
+    latest = runs[0] if runs else None
+    git_available = is_git_repo(cwd)
+
+    table = Table(title="Runtrace doctor")
+    table.add_column("Check")
+    table.add_column("Status")
+    table.add_column("Details")
+    table.add_row("Working directory", "Ready", relative_to_cwd(cwd))
+    table.add_row(
+        "Git repository",
+        "Yes" if git_available else "No",
+        "Git diff tracking enabled" if git_available else "Command output only",
+    )
+    table.add_row("Runs recorded", str(len(runs)), "runtrace demo" if not runs else "Use runtrace list")
+
+    if latest is None:
+        table.add_row("Latest run", "None", "Create one with runtrace demo")
+        table.add_row("Reports", "Missing", "Create one with runtrace demo")
+    else:
+        folder = run_dir(cwd, latest.run_id)
+        report_html = folder / "report.html"
+        report_md = folder / "report.md"
+        reports_ready = report_html.exists() and report_md.exists()
+        table.add_row("Latest run", "Ready", latest.run_id)
+        table.add_row(
+            "Reports",
+            "Ready" if reports_ready else "Missing",
+            relative_to_cwd(report_html) if reports_ready else f"runtrace report --run-id {latest.run_id}",
+        )
+
+    console.print(table)
 
 
 @app.command("export")
