@@ -27,16 +27,17 @@
 
 ```bash
 pipx install runtrace
-runtrace demo
+runtrace do pytest -q
+runtrace ui
 ```
 
-Runtrace prints the generated report paths after `demo`.
+`runtrace do` records the command and generates Markdown + HTML reports. `runtrace ui` opens the latest HTML report.
 
 Without `pipx`:
 
 ```bash
 python -m pip install --user runtrace
-runtrace demo
+runtrace do pytest -q
 ```
 
 ## Why Runtrace?
@@ -65,15 +66,16 @@ If the directory is not a git repository, Runtrace still records command output 
 Use it with Codex:
 
 ```bash
-runtrace run --name "codex bugfix" -- codex exec "fix the failing tests"
-runtrace report --open
-runtrace pr-summary
+runtrace do codex exec "fix the failing tests"
+runtrace ui
+runtrace pr
 ```
 
 Use it with tests:
 
 ```bash
-runtrace run --report --open --name "pytest baseline" -- pytest -q
+runtrace do pytest -q
+runtrace ui
 ```
 
 Use portable subprocess mode when you do not want best-effort PTY handling:
@@ -88,6 +90,11 @@ runtrace run --no-pty --name "tests" -- pytest -q
 |---|---|
 | `runtrace init` | Creates `.runtrace/config.toml` for custom review checks |
 | `runtrace demo` | Records a safe demo run and generates reports |
+| `runtrace do <command>` | Records a command and generates reports, no `--` needed |
+| `runtrace do --open <command>` | Records, reports, and opens the HTML report |
+| `runtrace ui` | Opens the latest HTML report |
+| `runtrace pr` | Prints a copy-ready PR summary |
+| `runtrace last` | Shows the latest run in the terminal |
 | `runtrace run -- <command>` | Records any command |
 | `runtrace run --no-pty -- <command>` | Records a command with portable subprocess mode |
 | `runtrace run --report -- <command>` | Records a command and generates reports immediately |

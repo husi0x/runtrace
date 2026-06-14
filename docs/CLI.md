@@ -16,10 +16,23 @@ For development setup, see [../CONTRIBUTING.md](../CONTRIBUTING.md).
 ## Basic shape
 
 ```bash
-runtrace run --name "my run" -- <command...>
+runtrace do <command...>
 ```
 
-The `--` matters. It tells Runtrace: everything after this belongs to the command you want to record.
+This is the recommended happy path. It records the command and generates `report.md` + `report.html`.
+
+Examples:
+
+```bash
+runtrace do pytest -q
+runtrace do --open pytest -q
+runtrace ui
+runtrace pr
+```
+
+The older `runtrace run -- <command...>` form is still available for advanced/explicit CLI parsing.
+
+With `run`, the `--` matters. It tells Runtrace: everything after this belongs to the command you want to record.
 
 Good:
 
@@ -27,13 +40,7 @@ Good:
 runtrace run --name "tests" -- pytest -q
 ```
 
-Bad:
-
-```bash
-runtrace run --name "tests" pytest -q
-```
-
-The second form is ambiguous for CLI parsers. Use `--`.
+Without the separator, the advanced `run` form is ambiguous for CLI parsers. Prefer `runtrace do` for daily use.
 
 ## Interactive commands and PTY
 
@@ -102,9 +109,28 @@ On macOS, use:
 open .runtrace/runs/<run_id>/report.html
 ```
 
+### `runtrace do`
+
+Record a command and generate reports. No `--` separator needed.
+
+```bash
+runtrace do pytest -q
+runtrace do --open pytest -q
+runtrace do --name "tests" pytest -q
+runtrace do codex exec "fix the failing tests"
+```
+
+Afterwards:
+
+```bash
+runtrace ui
+runtrace last
+runtrace pr
+```
+
 ### `runtrace run`
 
-Record any command.
+Advanced explicit form. Use it when you want the older `--` separator behavior or want to record without generating reports by default.
 
 ```bash
 runtrace run --name "hello" -- python -c "print('hello')"
@@ -152,6 +178,12 @@ Open the latest HTML report, generating it first if it is missing.
 ```bash
 runtrace open
 runtrace open <run_id>
+```
+
+Short alias:
+
+```bash
+runtrace ui
 ```
 
 ### `runtrace index`
@@ -215,6 +247,12 @@ runtrace pr-summary --run-id <run_id>
 runtrace pr-summary --output pr.md
 ```
 
+Short alias:
+
+```bash
+runtrace pr
+```
+
 ### `runtrace list`
 
 List previous runs, newest first.
@@ -248,6 +286,7 @@ Shortcut:
 
 ```bash
 runtrace latest
+runtrace last
 ```
 
 If reports are missing, `show` tells you how to generate them:

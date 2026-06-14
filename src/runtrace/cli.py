@@ -80,6 +80,65 @@ def _print_paths(title: str, run_id: str, paths: list[Path]) -> None:
     console.print(Panel("\n".join(lines), title=title, border_style="green"))
 
 
+def _auto_run_name(command: list[str]) -> str:
+    if not command:
+        return "run"
+    parts = [Path(command[0]).name]
+    if len(command) > 1:
+        parts.append(command[1])
+    return " ".join(parts)
+
+
+def _record_and_render_run(
+    command: list[str],
+    name: str | None = None,
+    use_pty: bool | None = None,
+    report: bool = False,
+    open_report: bool = False,
+) -> None:
+    if not command:
+        _print_error("No command was provided.", "runtrace do pytest -q")
+        raise typer.Exit(2)
+
+    try:
+        metadata = record_run(command, Path.cwd(), name=name or _auto_run_name(command), use_pty=use_pty)
+    except FileNotFoundError:
+        _print_error(f"Command not found: {command[0]}", "check the command name or use runtrace demo")
+        raise typer.Exit(127) from None
+
+    if not metadata.git_after.git_available:
+        console.print(
+            "[yellow]This directory is not a git repository. Runtrace will still record command output, "
+            "but git diff tracking is disabled.[/yellow]"
+        )
+
+    status = "success" if metadata.succeeded else "failed"
+    color = "green" if metadata.succeeded else "red"
+    run_folder = relative_to_cwd(run_dir(Path.cwd(), metadata.run_id))
+    report_line = ""
+    if report or open_report:
+        generate_reports(Path.cwd(), metadata.run_id, "both")
+        report_path = relative_to_cwd(_html_report_path(Path.cwd(), metadata.run_id))
+        report_line = f"[bold]Report generated:[/bold] {report_path}\n"
+    message = (
+        f"[bold]Run ID:[/bold] {metadata.run_id}\n"
+        f"[bold]Status:[/bold] [{color}]{status}[/]\n"
+        f"[bold]Exit code:[/bold] {metadata.exit_code}\n"
+        f"[bold]Run folder:[/bold] {run_folder}\n"
+        f"{report_line}\n"
+        f"[bold]Next:[/bold]\n"
+        f"  runtrace ui\n"
+        f"  runtrace last\n"
+        f"  runtrace pr"
+    )
+    if not metadata.succeeded:
+        message += f"\n\n[yellow]Command exited with code {metadata.exit_code}. The run was recorded anyway.[/]"
+    console.print(Panel(message, title="Runtrace run recorded", border_style=color))
+    if open_report:
+        _open_html_report(Path.cwd(), metadata.run_id)
+    raise typer.Exit(metadata.exit_code or 0)
+
+
 @app.callback()
 def main() -> None:
     """Record, inspect, and report local command runs."""
@@ -121,6 +180,18 @@ def demo_cmd() -> None:
     _print_paths("Runtrace demo complete", metadata.run_id, paths)
 
 
+@app.command("do", context_settings={"allow_extra_args": True, "ignore_unknown_options": True})
+def do_cmd(
+    ctx: typer.Context,
+    name: Annotated[str | None, typer.Option("--name", "-n", help="Human-readable run name.")] = None,
+    open_report: Annotated[bool, typer.Option("--open", help="Open the HTML report after recording.")] = False,
+    no_pty: Annotated[bool, typer.Option("--no-pty", help="Use portable subprocess mode.")] = False,
+) -> None:
+    """Record a command and generate reports. No -- separator needed."""
+    command = list(ctx.args)
+    _record_and_render_run(command, name=name, use_pty=False if no_pty else None, report=True, open_report=open_report)
+
+
 @app.command(context_settings={"allow_extra_args": True, "ignore_unknown_options": True})
 def run(
     ctx: typer.Context,
@@ -158,43 +229,13 @@ def run(
     if not command:
         _print_error("No command was provided after --.", "runtrace run -- python -c \"print('hello')\"")
         raise typer.Exit(2)
-
-    try:
-        metadata = record_run(command, Path.cwd(), name=name, use_pty=False if no_pty else None)
-    except FileNotFoundError:
-        _print_error(f"Command not found: {command[0]}", "check the command name or use runtrace demo")
-        raise typer.Exit(127) from None
-
-    if not metadata.git_after.git_available:
-        console.print(
-            "[yellow]This directory is not a git repository. Runtrace will still record command output, "
-            "but git diff tracking is disabled.[/yellow]"
-        )
-
-    status = "success" if metadata.succeeded else "failed"
-    color = "green" if metadata.succeeded else "red"
-    run_folder = relative_to_cwd(run_dir(Path.cwd(), metadata.run_id))
-    report_line = ""
-    if report or open_report:
-        generate_reports(Path.cwd(), metadata.run_id, "both")
-        report_path = relative_to_cwd(_html_report_path(Path.cwd(), metadata.run_id))
-        report_line = f"[bold]Report generated:[/bold] {report_path}\n"
-    message = (
-        f"[bold]Run ID:[/bold] {metadata.run_id}\n"
-        f"[bold]Status:[/bold] [{color}]{status}[/]\n"
-        f"[bold]Exit code:[/bold] {metadata.exit_code}\n"
-        f"[bold]Run folder:[/bold] {run_folder}\n"
-        f"{report_line}\n"
-        f"[bold]Next:[/bold]\n"
-        f"  runtrace report --run-id {metadata.run_id}\n"
-        f"  runtrace show {metadata.run_id}"
+    _record_and_render_run(
+        command,
+        name=name,
+        use_pty=False if no_pty else None,
+        report=report,
+        open_report=open_report,
     )
-    if not metadata.succeeded:
-        message += f"\n\n[yellow]Command exited with code {metadata.exit_code}. The run was recorded anyway.[/]"
-    console.print(Panel(message, title="Runtrace run recorded", border_style=color))
-    if open_report:
-        _open_html_report(Path.cwd(), metadata.run_id)
-    raise typer.Exit(metadata.exit_code or 0)
 
 
 @app.command("report")
@@ -235,6 +276,14 @@ def open_cmd(
         _print_error(f"Run not found: {run_id}", "runtrace list")
         raise typer.Exit(1) from None
     _open_html_report(Path.cwd(), actual_id)
+
+
+@app.command("ui")
+def ui_cmd(
+    run_id: Annotated[str, typer.Argument(help="Run ID to open. Use 'latest' for newest.")] = "latest",
+) -> None:
+    """Alias for runtrace open."""
+    open_cmd(run_id)
 
 
 @app.command("index")
@@ -341,6 +390,18 @@ def pr_summary_cmd(
     console.print(f"[green]Wrote PR summary:[/] {relative_to_cwd(output)}")
 
 
+@app.command("pr")
+def pr_cmd(
+    run_id: Annotated[str | None, typer.Option("--run-id", help="Run ID to summarize. Defaults to latest.")] = None,
+    output: Annotated[
+        Path | None,
+        typer.Option("--output", "-o", help="Write Markdown PR summary to this file."),
+    ] = None,
+) -> None:
+    """Alias for runtrace pr-summary."""
+    pr_summary_cmd(run_id=run_id, output=output)
+
+
 def _render_runs_table() -> None:
     runs = list_runs(Path.cwd())
     if not runs:
@@ -437,6 +498,12 @@ def show_cmd(run_id: str) -> None:
 @app.command("latest")
 def latest_cmd() -> None:
     """Show the latest run."""
+    _show_run("latest")
+
+
+@app.command("last")
+def last_cmd() -> None:
+    """Alias for runtrace latest."""
     _show_run("latest")
 
 

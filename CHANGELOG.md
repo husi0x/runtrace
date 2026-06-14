@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.2 - 2026-06-14
+
+- Added simpler user-facing aliases: `runtrace do`, `runtrace ui`, `runtrace pr`, and `runtrace last`.
+- Updated README and CLI docs around the shorter happy path: `runtrace do pytest -q`, `runtrace ui`, `runtrace pr`.
+
 ## 0.3.1 - 2026-06-14
 
 - Fixed PyPI long-description images by using absolute GitHub raw asset URLs for the README hero and report preview.
