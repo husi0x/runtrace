@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <img src="assets/runtrace-hero.png" alt="Runtrace — a black box for AI coding agents" width="100%">
+  <img src="https://raw.githubusercontent.com/husi0x/runtrace/main/assets/runtrace-hero.png" alt="Runtrace — a black box for AI coding agents" width="100%">
 </p>
 
 <p align="center">
@@ -55,7 +55,7 @@ report.html      # self-contained HTML report
 Runtrace records command timing, exit code, live output, git branch/commit/status/diff when available, changed files, and deterministic review findings.
 
 <p align="center">
-  <img src="assets/runtrace-report-preview.png" alt="Runtrace HTML report preview" width="92%">
+  <img src="https://raw.githubusercontent.com/husi0x/runtrace/main/assets/runtrace-report-preview.png" alt="Runtrace HTML report preview" width="92%">
 </p>
 
 If the directory is not a git repository, Runtrace still records command output and marks git tracking as unavailable.

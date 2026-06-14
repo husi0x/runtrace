@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.1 - 2026-06-14
+
+- Fixed PyPI long-description images by using absolute GitHub raw asset URLs for the README hero and report preview.
+
 ## 0.3.0 - 2026-06-14
 
 - Added artifact sanitizing for recorded metadata, output previews, git summaries, and logs. Common local paths and obvious secret-like values are masked before report generation.
