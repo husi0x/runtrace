@@ -136,7 +136,7 @@ See [docs/CONFIG.md](docs/CONFIG.md).
 
 Runtrace does not call any external API. Everything is stored locally in `.runtrace/`.
 
-Reports may include command output, file paths, and git diffs. Review them before sharing publicly.
+Runtrace masks common local paths and obvious secret-like values before writing reports and metadata. Reports may still include command output, file paths, and git diffs that are project-specific, so review them before sharing publicly.
 
 See [SECURITY.md](SECURITY.md) for practical security notes.
 

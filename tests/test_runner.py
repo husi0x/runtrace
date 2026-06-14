@@ -29,6 +29,7 @@ def test_metadata_json_contains_command_forms(tmp_path):
     metadata = record_run([sys.executable, "-c", "print('x')"], tmp_path, name="cmd forms")
     data = json.loads((tmp_path / ".runtrace" / "runs" / metadata.run_id / "metadata.json").read_text(encoding="utf-8"))
 
-    assert data["command"] == [sys.executable, "-c", "print('x')"]
+    assert data["command"][1:] == ["-c", "print('x')"]
     assert "print" in data["command_shell"]
-    assert data["cwd"] == str(tmp_path)
+    assert data["cwd"] == "<tmp>"
+    assert data["sanitized"] is True

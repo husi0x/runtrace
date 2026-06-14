@@ -7,10 +7,11 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from runtrace.git_utils import classify_status, get_git_snapshot
-from runtrace.models import RunMetadata
+from runtrace.models import GitSnapshot, RunMetadata
 from runtrace.paths import run_dir as path_run_dir
 from runtrace.paths import runs_dir
 from runtrace.runner import run_command
+from runtrace.sanitizer import sanitize_list, sanitize_path, sanitize_text
 
 
 def generate_run_id(now: datetime | None = None) -> str:
@@ -29,6 +30,27 @@ def _output_preview(path: Path, max_chars: int = 8000) -> str:
     if len(text) <= max_chars:
         return text
     return text[-max_chars:]
+
+
+def _sanitize_output_log(path: Path) -> None:
+    if not path.exists():
+        return
+    text = path.read_text(encoding="utf-8", errors="replace")
+    sanitized = sanitize_text(text)
+    if sanitized != text:
+        path.write_text(sanitized, encoding="utf-8")
+
+
+def _sanitize_git_snapshot(snapshot: GitSnapshot) -> GitSnapshot:
+    return snapshot.model_copy(
+        update={
+            "repo_root": sanitize_text(snapshot.repo_root) if snapshot.repo_root else None,
+            "status_short": sanitize_text(snapshot.status_short),
+            "changed_files": sanitize_list(snapshot.changed_files),
+            "diff_stat": sanitize_text(snapshot.diff_stat),
+            "full_diff": sanitize_text(snapshot.full_diff),
+        }
+    )
 
 
 def _save_metadata(run_dir: Path, metadata: RunMetadata) -> None:
@@ -51,16 +73,17 @@ def record_run(
     start = datetime.now(UTC)
     before = get_git_snapshot(root)
     exit_code = run_command(command, root, output_log, use_pty=use_pty)
+    _sanitize_output_log(output_log)
     end = datetime.now(UTC)
     after = get_git_snapshot(root)
     changed, added, modified, deleted = classify_status(after.status_short)
 
     metadata = RunMetadata(
         run_id=run_id,
-        name=name or " ".join(command[:3]) or "run",
-        cwd=str(root),
-        command=command,
-        command_shell=shlex.join(command),
+        name=sanitize_text(name or " ".join(command[:3]) or "run"),
+        cwd=sanitize_path(root),
+        command=sanitize_list(command),
+        command_shell=sanitize_text(shlex.join(command)),
         start_time=start,
         end_time=end,
         duration_seconds=round((end - start).total_seconds(), 3),
@@ -68,15 +91,16 @@ def record_run(
         succeeded=exit_code == 0,
         output_log=str(output_log.relative_to(run_dir)),
         output_preview=_output_preview(output_log),
-        git_before=before,
-        git_after=after,
-        changed_files=changed,
-        files_added=added,
-        files_modified=modified,
-        files_deleted=deleted,
-        diff_stat_after=after.diff_stat,
-        full_diff_after=after.full_diff,
+        git_before=_sanitize_git_snapshot(before),
+        git_after=_sanitize_git_snapshot(after),
+        changed_files=sanitize_list(changed),
+        files_added=sanitize_list(added),
+        files_modified=sanitize_list(modified),
+        files_deleted=sanitize_list(deleted),
+        diff_stat_after=sanitize_text(after.diff_stat),
+        full_diff_after=sanitize_text(after.full_diff),
         working_tree_changed=bool(after.status_short.strip()),
+        sanitized=True,
     )
     _save_metadata(run_dir, metadata)
     return metadata

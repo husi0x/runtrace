@@ -39,6 +39,7 @@ class RunMetadata(BaseModel):
     diff_stat_after: str = ""
     full_diff_after: str = ""
     working_tree_changed: bool = False
+    sanitized: bool = False
 
 
 class ReviewFinding(BaseModel):
